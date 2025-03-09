@@ -27,14 +27,14 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -42,14 +42,11 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	ctx        context.Context
-	cancel     context.CancelFunc
-	testEnv    *envtest.Environment
-	cfg        *rest.Config
-	k8sClient  client.Client
-	scheme     *runtime.Scheme
-	k8sManager manager.Manager
-	reconciler *ImagePullSecretReconciler
+	ctx       context.Context
+	cancel    context.CancelFunc
+	testEnv   *envtest.Environment
+	cfg       *rest.Config
+	k8sClient client.Client
 )
 
 func TestControllers(t *testing.T) {
@@ -63,13 +60,11 @@ var _ = BeforeSuite(func() {
 
 	ctx, cancel = context.WithCancel(context.TODO())
 
-	scheme = runtime.NewScheme()
-
 	var err error
-	err = corev1.AddToScheme(scheme)
+	err = corev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = esv1beta1.AddToScheme(scheme)
+	err = esv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -90,21 +85,52 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
+	_, err = envtest.InstallCRDs(cfg, envtest.CRDInstallOptions{
+		Scheme: scheme.Scheme,
+		Paths:  []string{filepath.Join("testdata", "externalsecrets-crd.yaml")},
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:         scheme,
-		LeaderElection: false,
+	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: scheme.Scheme,
 	})
 	Expect(err).ShouldNot(HaveOccurred())
 
-	reconciler = &ImagePullSecretReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: scheme,
-	}
-	err = reconciler.SetupWithManager(k8sManager)
+	triggerSecretName := "test-secret"
+	externalSecretManifest := `---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: test-es
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: test-sm
+  target:
+    name: test-secret
+    creationPolicy: Merge
+  data:
+  - secretKey: test-key
+    remoteRef:
+      key: test
+      property: test-property
+`
+
+	var desiredExternalSecret esv1beta1.ExternalSecret
+	err = yaml.Unmarshal([]byte(externalSecretManifest), &desiredExternalSecret)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	err = (&ImagePullExternalSecretReconciler{
+		Client:                k8sManager.GetClient(),
+		Scheme:                scheme.Scheme,
+		TriggerSecretName:     triggerSecretName,
+		DesiredExternalSecret: desiredExternalSecret,
+	}).SetupWithManager(k8sManager)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	go func() {

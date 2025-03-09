@@ -218,11 +218,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.ImagePullSecretReconciler{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		TriggerSecretName:      triggerSecretName,
-		DesiredImagePullSecret: desiredExternalSecret,
+	if err = (&controller.ImagePullExternalSecretReconciler{
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		TriggerSecretName:     triggerSecretName,
+		DesiredExternalSecret: desiredExternalSecret,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
 		os.Exit(1)
