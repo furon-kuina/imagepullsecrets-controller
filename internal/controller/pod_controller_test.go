@@ -32,8 +32,9 @@ import (
 var _ = Describe("Test Creating ExternalSecret", func() {
 	ctx := context.Background()
 
-	os.Setenv("TRIGGER_SECRET_NAME", "test-secret")
-	os.Setenv("DESIRED_EXTERNAL_SECRET", heredoc.Doc(`
+	err := os.Setenv("TRIGGER_SECRET_NAME", "test-secret")
+	Expect(err).ShouldNot(HaveOccurred())
+	err = os.Setenv("DESIRED_EXTERNAL_SECRET", heredoc.Doc(`
 		apiVersion: external-secrets.io/v1beta1
 		kind: ExternalSecret
 		metadata:
@@ -52,6 +53,7 @@ var _ = Describe("Test Creating ExternalSecret", func() {
 						key: test
         property: test-property
 	`))
+	Expect(err).ShouldNot(HaveOccurred())
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,24 +74,24 @@ var _ = Describe("Test Creating ExternalSecret", func() {
 		err := k8sClient.Create(ctx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Eventually(func() {
+		Eventually(func(g Gomega) {
 			externalSecret := &esv1beta1.ExternalSecret{}
 			err = k8sClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: "test-es"}, externalSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(externalSecret.Name).Should(Equal("test-es"))
 			Expect(externalSecret.Namespace).Should(Equal("default"))
-		})
+		}).Should(Succeed())
 	})
 
 	It("deletes previously required resource", func() {
 		err := k8sClient.Delete(ctx, pod)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Eventually(func() {
+		Eventually(func(g Gomega) {
 			externalSecretList := &esv1beta1.ExternalSecretList{}
 			err = k8sClient.List(ctx, externalSecretList, &client.ListOptions{Namespace: "default"})
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(externalSecretList.Items).Should(BeEmpty())
-		})
+		}).Should(Succeed())
 	})
 })

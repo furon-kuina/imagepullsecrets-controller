@@ -212,7 +212,11 @@ func main() {
 
 	desiredExternalSecretStr := os.Getenv("DESIRED_EXTERNAL_SECRET")
 	desiredExternalSecret := es.ExternalSecret{}
-	yaml.Unmarshal([]byte(desiredExternalSecretStr), &desiredExternalSecret)
+	err = yaml.Unmarshal([]byte(desiredExternalSecretStr), &desiredExternalSecret)
+	if err != nil {
+		setupLog.Error(err, "invalid manifest for ExternalSecret")
+		os.Exit(1)
+	}
 
 	if err = (&controller.ImagePullSecretReconciler{
 		Client:                 mgr.GetClient(),

@@ -1,12 +1,12 @@
 module github.com/furon-kuina/imagepullsecrets-controller
 
-go 1.23.6
-
-toolchain go1.24.0
+go 1.24.0
 
 godebug default=go1.23
 
 require (
+	github.com/MakeNowJust/heredoc/v2 v2.0.1
+	github.com/external-secrets/external-secrets v0.14.3
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	k8s.io/api v0.32.2
@@ -17,7 +17,6 @@ require (
 
 require (
 	cel.dev/expr v0.19.0 // indirect
-	github.com/MakeNowJust/heredoc/v2 v2.0.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -26,9 +25,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
-	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
-	github.com/external-secrets/external-secrets v0.14.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
