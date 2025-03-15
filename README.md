@@ -1,8 +1,8 @@
 # imagepullsecrets-controller
-// TODO(user): Add simple overview of use/purpose
+Automatically creates required ExternalSecret for imagePullSecret.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+This controller automatically creates an ExternalSecret for imagePullSecret if and only if it is required, eliminating toils while maintaining security.
 
 ## Getting Started
 
