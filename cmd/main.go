@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -28,6 +29,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/furon-kuina/imagepullsecrets-controller/internal/controller"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -178,6 +180,12 @@ func main() {
 		metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
 			config.GetCertificate = metricsCertWatcher.GetCertificate
 		})
+	}
+
+	err := esv1beta1.AddToScheme(scheme)
+	if err != nil {
+		setupLog.Error(err, fmt.Sprintf("github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.AddToScheme failed: %v", err))
+		os.Exit(1)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

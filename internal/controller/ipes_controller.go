@@ -100,10 +100,12 @@ func (r *ImagePullExternalSecretReconciler) SetupWithManager(mgr ctrl.Manager) e
 }
 
 func (r *ImagePullExternalSecretReconciler) reconcileExternalSecrets(ctx context.Context, namespace string) error {
+	logger := log.FromContext(ctx)
 	// check if the namespace requires r.targetSecretName secret
 	pods := &corev1.PodList{}
 	err := r.Client.List(ctx, pods, &client.ListOptions{Namespace: namespace})
 	if err != nil {
+		logger.Error(err, "failed to list pods")
 		return fmt.Errorf("listing pods in %s namespace: %v", namespace, err)
 	}
 
@@ -121,6 +123,7 @@ func (r *ImagePullExternalSecretReconciler) reconcileExternalSecrets(ctx context
 	esList := &esv1beta1.ExternalSecretList{}
 	err = r.Client.List(ctx, esList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
+		logger.Error(err, fmt.Sprintf("failed to list secrets: %v", err))
 		return fmt.Errorf("listing secrets in %s namespace: %v", namespace, err)
 	}
 	targetSecretExists := false
@@ -137,6 +140,7 @@ func (r *ImagePullExternalSecretReconciler) reconcileExternalSecrets(ctx context
 		desiredExternalSecret.SetNamespace(namespace)
 		err := r.Client.Create(ctx, &desiredExternalSecret)
 		if err != nil {
+			logger.Error(err, "failed to create ExternalSecret")
 			return fmt.Errorf("creating ExternalSecret: %v", err)
 		}
 		return nil
@@ -147,6 +151,7 @@ func (r *ImagePullExternalSecretReconciler) reconcileExternalSecrets(ctx context
 		desiredExternalSecret.SetNamespace(namespace)
 		err := r.Client.Delete(ctx, &desiredExternalSecret)
 		if err != nil {
+			logger.Error(err, "failed to delete ExternalSecret")
 			return fmt.Errorf("deleting ExternalSecret: %v", err)
 		}
 	}
